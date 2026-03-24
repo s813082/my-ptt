@@ -10,9 +10,9 @@ on:
     - cron: "4,9,14,19,24,29,34,39,44,49,54,59 * * * *"   # :04, :09, :14, ...
   workflow_dispatch: # 手動觸發
 
-# 同時間只允許一個執行實例，避免 cache 競爭
+# 同一排程時間點只允許一個執行實例，不同排程時間點可並行，避免 cache 競爭又能每分鐘執行
 concurrency:
-  group: drama-ticket-monitor
+  group: drama-ticket-monitor-${{ github.event.schedule || 'manual' }}
   cancel-in-progress: false
 
 jobs:
