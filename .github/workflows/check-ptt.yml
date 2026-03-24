@@ -2,17 +2,11 @@ name: PTT Drama-Ticket Monitor
 
 on:
   schedule:
-    # 5 個排程，每個間隔 5 分鐘，實現約每分鐘檢查一次
-    - cron: "0,5,10,15,20,25,30,35,40,45,50,55 * * * *"   # :00, :05, :10, ...
-    - cron: "1,6,11,16,21,26,31,36,41,46,51,56 * * * *"   # :01, :06, :11, ...
-    - cron: "2,7,12,17,22,27,32,37,42,47,52,57 * * * *"   # :02, :07, :12, ...
-    - cron: "3,8,13,18,23,28,33,38,43,48,53,58 * * * *"   # :03, :08, :13, ...
-    - cron: "4,9,14,19,24,29,34,39,44,49,54,59 * * * *"   # :04, :09, :14, ...
+    - cron: "*/5 * * * *"   # 每 5 分鐘執行一次
   workflow_dispatch: # 手動觸發
 
-# 同一排程時間點只允許一個執行實例，不同排程時間點可並行，避免 cache 競爭又能每分鐘執行
 concurrency:
-  group: drama-ticket-monitor-${{ github.event.schedule || 'manual' }}
+  group: drama-ticket-monitor
   cancel-in-progress: false
 
 jobs:
