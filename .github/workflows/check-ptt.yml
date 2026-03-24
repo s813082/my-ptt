@@ -2,13 +2,18 @@ name: PTT Drama-Ticket Monitor
 
 on:
   schedule:
-    # 5 個排程，每個間隔 5 分鐘，透過時間差實現約每分鐘檢查一次
-    - cron: "0/5 * * * *" # :00, :05, :10, :15, ...
-    - cron: "1/5 * * * *" # :01, :06, :11, :16, ...
-    - cron: "2/5 * * * *" # :02, :07, :12, :17, ...
-    - cron: "3/5 * * * *" # :03, :08, :13, :18, ...
-    - cron: "4/5 * * * *" # :04, :09, :14, :19, ...
+    # 5 個排程，每個間隔 5 分鐘，實現約每分鐘檢查一次
+    - cron: "0,5,10,15,20,25,30,35,40,45,50,55 * * * *"   # :00, :05, :10, ...
+    - cron: "1,6,11,16,21,26,31,36,41,46,51,56 * * * *"   # :01, :06, :11, ...
+    - cron: "2,7,12,17,22,27,32,37,42,47,52,57 * * * *"   # :02, :07, :12, ...
+    - cron: "3,8,13,18,23,28,33,38,43,48,53,58 * * * *"   # :03, :08, :13, ...
+    - cron: "4,9,14,19,24,29,34,39,44,49,54,59 * * * *"   # :04, :09, :14, ...
   workflow_dispatch: # 手動觸發
+
+# 同時間只允許一個執行實例，避免 cache 競爭
+concurrency:
+  group: drama-ticket-monitor
+  cancel-in-progress: false
 
 jobs:
   check-ptt:
@@ -16,37 +21,92 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Checkout repository
+      # ── 步驟 1：拉取程式碼 ──────────────────────────────
+      - name: "📥 步驟 1/6：拉取最新程式碼"
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: "📋 顯示執行環境資訊"
+        run: |
+          echo "══════════════════════════════════════════════"
+          echo "🎯 PTT Drama-Ticket 售票監控系統"
+          echo "══════════════════════════════════════════════"
+          echo "⏰ 執行時間 (UTC)：$(date -u '+%Y-%m-%d %H:%M:%S')"
+          echo "⏰ 執行時間 (台灣)：$(TZ='Asia/Taipei' date '+%Y-%m-%d %H:%M:%S')"
+          echo "🔄 觸發方式：${{ github.event_name }}"
+          echo "📌 Commit SHA：${{ github.sha }}"
+          echo "🏷️ 分支：${{ github.ref_name }}"
+          echo "═══════════════════════════════════════════════"
+
+      # ── 步驟 2：建立 Python 環境 ─────────────────────────
+      - name: "🐍 步驟 2/6：設定 Python 3.12 環境"
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
-        run: pip install -r drama-ticket/requirements.txt
+      # ── 步驟 3：安裝依賴套件 ─────────────────────────────
+      - name: "📦 步驟 3/6：安裝依賴套件"
+        run: |
+          echo "📦 正在安裝 Python 依賴套件..."
+          pip install -r apps/drama-ticket/requirements.txt --quiet
+          echo "✅ 依賴套件安裝完成"
+          echo "📋 已安裝套件清單："
+          pip list --format=columns | grep -iE "requests|beautifulsoup"
 
-      # 從 cache 還原已通知文章紀錄，避免重複通知
-      - name: Restore seen posts cache
+      # ── 步驟 4：還原已通知文章紀錄 ──────────────────────
+      - name: "💾 步驟 4/6：還原已通知文章紀錄 (Cache)"
         uses: actions/cache@v4
         with:
-          path: drama-ticket/seen_posts.json
-          key: seen-posts-${{ github.run_id }}
-          restore-keys: |
-            seen-posts-
+          path: apps/drama-ticket/seen_posts.json
+          key: drama-ticket-seen-posts
+          restore-keys: drama-ticket-seen-posts
 
-      - name: Run PTT scraper
+      - name: "📊 顯示 Cache 還原結果"
+        run: |
+          if [ -f "apps/drama-ticket/seen_posts.json" ]; then
+            COUNT=$(python3 -c "import json; print(len(json.load(open('apps/drama-ticket/seen_posts.json'))))" 2>/dev/null || echo "0")
+            echo "✅ 已還原 seen_posts.json — 共 ${COUNT} 筆已通知文章"
+          else
+            echo "ℹ️ 首次執行或 Cache 已過期，尚無已通知文章紀錄"
+            echo "📝 將建立新的 seen_posts.json"
+          fi
+
+      # ── 步驟 5：執行爬蟲主程式 ──────────────────────────
+      - name: "🕷️ 步驟 5/6：執行 PTT 售票監控爬蟲"
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        working-directory: drama-ticket
-        run: python scraper.py
+        working-directory: apps/drama-ticket
+        run: |
+          echo "🚀 開始執行爬蟲..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          python scraper.py
+          EXIT_CODE=$?
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "✅ 爬蟲執行完成 (exit code: 0)"
+          else
+            echo "❌ 爬蟲執行異常 (exit code: $EXIT_CODE)"
+            exit $EXIT_CODE
+          fi
 
-      # 將 seen_posts.json 存回 cache（下次執行時還原）
-      - name: Save seen posts
+      # ── 步驟 6：儲存已通知紀錄至 Cache ─────────────────
+      - name: "💾 步驟 6/6：儲存已通知文章紀錄至 Cache"
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: drama-ticket/seen_posts.json
-          key: seen-posts-${{ github.run_id }}
+          path: apps/drama-ticket/seen_posts.json
+          key: drama-ticket-seen-posts
+
+      - name: "📊 最終狀態報告"
+        if: always()
+        run: |
+          echo "══════════════════════════════════════════════"
+          echo "📊 本次執行結束"
+          echo "══════════════════════════════════════════════"
+          if [ -f "apps/drama-ticket/seen_posts.json" ]; then
+            COUNT=$(python3 -c "import json; print(len(json.load(open('apps/drama-ticket/seen_posts.json'))))" 2>/dev/null || echo "0")
+            echo "💾 已通知文章累計：${COUNT} 篇"
+          fi
+          echo "⏰ 結束時間 (台灣)：$(TZ='Asia/Taipei' date '+%Y-%m-%d %H:%M:%S')"
+          echo "✅ Workflow 執行完畢"
+          echo "══════════════════════════════════════════════"

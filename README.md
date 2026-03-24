@@ -1,120 +1,90 @@
-# PTT Drama-Ticket 孫燕姿售票監控
+# PTT Toolset: 智慧助理與情緒雷達 🚀
 
-自動爬取 [PTT Drama-Ticket 看板](https://www.ptt.cc/bbs/Drama-Ticket/index.html)，篩選孫燕姿演唱會售票文章，透過 Telegram Bot 即時通知。
+本專案是一個整合式的 PTT 自動化工具箱，目前包含「**孫燕姿售票監控**」與「**股票情緒雷達**」兩大核心功能。透過 GitHub Actions 實現全自動排程、AI 分析與即時通知。
 
-目標條件：**5/15 或 5/17、兩張連號**
+---
 
-## 篩選邏輯
+## 📂 專案架構 (Project Structure)
 
-| 層級 | 條件 | 說明 |
-|------|------|------|
-| 第一層 | 標題含「售票」 | 快速過濾非售票文 |
-| 第二層 | 標題或內文含「孫燕姿」 | 進入文章全文比對 |
-| 進階標記 | 含日期（5/15、5/17）＋座位（連號、兩張）| 標記為 🔥 高度符合 |
+專案採用模組化設計，所有的核心應用程式皆收納於 `apps/` 目錄下：
 
-## 排程機制
-
-5 個 cron job 彼此差 1 分鐘，效果等同**每分鐘掃描一次**：
-
-```
-cron 1: :00, :05, :10 ...
-cron 2: :01, :06, :11 ...
-cron 3: :02, :07, :12 ...
-cron 4: :03, :08, :13 ...
-cron 5: :04, :09, :14 ...
+```text
+.
+├── .github/workflows/    # GitHub Actions 排程設定
+├── apps/
+│   ├── drama-ticket/     # 【模組 1】孫燕姿售票監控
+│   └── sentiment-radar/  # 【模組 2】PTT 股票情緒雷達
+├── data/                 # 存放情緒雷達分析結果 (JSON)
+├── docs/                 # GitHub Pages 網頁展示 (情緒雷達 UI)
+│   └── assets/           # 專案相關資源與截圖
+├── .gitignore
+└── README.md             # 本說明文件
 ```
 
-## seen_posts.json 說明
+---
 
-記錄已通知過的文章（防重複發送），透過 **GitHub Actions Cache** 在各次執行間持久保存，**不存入 git repo**。
+## 🎯 功能模組 1：孫燕姿售票監控
 
-| 事項 | 說明 |
-|------|------|
-| 存放位置 | GitHub Actions Cache（非 git） |
-| 保存期限 | 7 天未使用自動過期 |
-| 手動清空 | Repo → Actions → Caches → 刪除 `seen-posts-` 系列 |
+自動爬取 [PTT Drama-Ticket 看板](https://www.ptt.cc/bbs/Drama-Ticket/index.html)，篩選孫燕姿演唱會售票文章，並透過 Telegram Bot 即時通知。
 
-## 快速開始
+### 🌟 特色
+- **精準篩選**：自動比對標題「售票」與「孫燕姿」，進階標記「5/15、5/17、連號、兩張」等高符合度條件。
+- **極速排程**：透過 GitHub Actions 5 組 cron job 實現**每分鐘**掃描一次。
+- **智慧防重**：使用 GitHub Actions Cache 記錄已通知的文章。
 
-### 1. 建立 Telegram Bot
-
-1. Telegram 搜尋 **@BotFather** → `/newbot` → 取得 Token
-2. 對 Bot 傳任意訊息後，開啟以下網址取得 Chat ID：
+### 🚀 快速開始
+1. **設定 Secrets**：在 GitHub Repo 設定 `TELEGRAM_BOT_TOKEN` 與 `TELEGRAM_CHAT_ID`。
+2. **啟動**：Push 後自動執行，或手動執行 `PTT Drama-Ticket Monitor` workflow。
+3. **本地測試**：
+   ```bash
+   cd apps/drama-ticket
+   pip install -r requirements.txt
+   python scraper.py
    ```
-   https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates
+
+---
+
+## 📈 功能模組 2：PTT 股票情緒雷達
+
+針對 PTT Stock 板「盤中閒聊」文章，利用 AI (Gemini/GitHub Models) 進行情緒分析，並將結果呈現在視覺化網頁上。
+
+### 🌟 特色
+- **增量更新**：每半小時自動抓取最新留言，僅分析新數據以節省 Token。
+- **AI 驅動**：自動分類留言情緒（Bullish/Bearish/Neutral）。
+- **視覺化展示**：自動更新 `docs/` 並透過 GitHub Pages 顯示即時趨勢。
+
+### 🚀 快速開始
+1. **設定 Secrets**：設定 `GEMINI_API_KEY` 或 `GITHUB_TOKEN`。
+2. **網頁預覽**：[前往專案網頁](https://s813082.github.io/my-ptt/) (請確保已啟用 GitHub Pages)。
+3. **本地測試**：
+   ```bash
+   cd apps/sentiment-radar
+   pip install -r requirements.txt
+   python main.py
    ```
-   回傳 JSON 中 `message.chat.id` 即為 Chat ID。
 
-### 2. 設定 GitHub Secrets
+---
 
-Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+## 🛠️ 開發環境 (Development)
 
-| Secret 名稱 | 說明 |
-|---|---|
-| `TELEGRAM_BOT_TOKEN` | BotFather 給的 Token |
-| `TELEGRAM_CHAT_ID` | 你的 Chat ID（數字） |
+本專案建議使用 Python 3.12+ 進行開發。
 
-### 3. Push 後 Actions 自動啟用
-
-可到 Actions 頁面手動點 **Run workflow** 立即測試。
-
-## 本地測試
-
+### 安裝依賴
 ```bash
 # 建立虛擬環境
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate
 
-# 建立 .env（不會被 push）
-cat > .env << EOF
-TELEGRAM_BOT_TOKEN=你的Token
-TELEGRAM_CHAT_ID=你的ChatID
-EOF
-
-# 執行（自動讀取 .env）
-python scraper.py
-
-# 重置記錄（強制重新通知所有文章）
-rm seen_posts.json && python scraper.py
+# 安裝所有模組依賴
+pip install -r apps/drama-ticket/requirements.txt
+pip install -r apps/sentiment-radar/requirements.txt
 ```
 
-## 通知格式
+---
 
-```
-🔥 高度符合
-━━━━━━━━━━━━━━━━
-📌 [售票] 孫燕姿5/17 $4380*2連號
-🔗 https://www.ptt.cc/bbs/Drama-Ticket/M.xxxxxxx.html
-👍 推文數: 2
-📅 日期關鍵字: 5/17
-💺 座位關鍵字: 連號
-━━━━━━━━━━━━━━━━
-📝 內文預覽:
-> 節目：孫燕姿 時間：5月17日 18:30 張數：2（連號）...
-```
+## 📜 聲明 (Disclaimer)
+本專案僅供學術研究與個人使用，請遵守 PTT 站方之爬蟲相關規定。
+如有侵權或任何問題，請聯繫開發者。
 
-## 自訂篩選條件
-
-編輯 [scraper.py](scraper.py) 頂部常數：
-
-```python
-TITLE_KEYWORDS   = ["售票"]
-CONTENT_KEYWORDS = ["孫燕姿"]
-DATE_KEYWORDS    = ["5/15", "5/17", "5月15", "5月17"]
-SEAT_KEYWORDS    = ["連號", "兩張", "2張", "連座"]
-MAX_PAGES        = 10   # 往前爬幾頁
-```
-
-## 檔案結構
-
-```
-.
-├── .github/
-│   └── workflows/
-│       └── check-ptt.yml   # GitHub Actions（5-cron 每分鐘排程）
-├── .env                    # 本地憑證（.gitignore，不 push）
-├── .gitignore
-├── README.md
-├── requirements.txt
-└── scraper.py              # PTT 爬蟲主程式
-```
+---
+*(＃`Д´) 笨蛋弟弟，這是姊姊幫你寫的，給我好好珍惜喔！*

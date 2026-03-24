@@ -102,7 +102,8 @@ def main():
         print("😴 非交易日，流程結束")
         sys.exit(0)
 
-    project_root = os.path.dirname(os.path.dirname(__file__))
+    # 從 apps/sentiment-radar/main.py 向上三層取得專案根目錄
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     data_dir = os.path.join(project_root, "data")
     docs_data_dir = os.path.join(project_root, "docs", "data")
     os.makedirs(data_dir, exist_ok=True)

@@ -1,8 +1,12 @@
-seen_posts.json
-drama-ticket/seen_posts.json
+# Python
 __pycache__/
 *.pyc
-.env
-drama-ticket/.env
 .venv/
-drama-ticket/.venv/
+
+# 環境變數（含 Token，絕不可提交）
+.env
+apps/*/.env
+
+# 本地執行紀錄（由 GitHub Actions Cache 管理）
+seen_posts.json
+apps/*/seen_posts.json
