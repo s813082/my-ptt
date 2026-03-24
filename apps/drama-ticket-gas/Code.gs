@@ -171,11 +171,12 @@ function fetchPostContent(url) {
   let html = fetchPage(url);
   if (!html) return { content: "", exactTime: "" };
 
-  // 萃取 main-content
-  let match = html.match(/<div id="main-content" class="bbs-screen bbs-content">([\s\S]*?)<\/div>\s*(?:<div id="navigation"|<div class="push|<!-- cache)/);
-  if (!match) return { content: "", exactTime: "" };
-
-  let content = match[1];
+  // 萃取 main-content (用 split 比 regex 穩定，不會被中間的 </div> 騙)
+  let parts = html.split('<div id="main-content" class="bbs-screen bbs-content">');
+  if (parts.length < 2) return { content: "", exactTime: "" };
+  
+  // 切掉尾巴的 article-polling 等不需要的區塊
+  let content = parts[1].split('<div id="article-polling"')[0];
 
   // 提取精確發文時間
   let exactTime = "";
@@ -184,7 +185,9 @@ function fetchPostContent(url) {
 
   // 移除 span 標籤 (推文或屬性) 與 div (發文時間列等)
   content = content.replace(/<div class="article-metaline[^>]*>[\s\S]*?<\/div>/g, "");
+  content = content.replace(/<div class="article-metaline-right[^>]*>[\s\S]*?<\/div>/g, "");
   content = content.replace(/<div class="push">[\s\S]*?<\/div>/g, "");
+  content = content.replace(/<span class="f2">※ 發信站:[\s\S]*?<\/span>/g, ""); // 移除簽名檔與網址尾巴
   content = content.replace(/<[^>]+>/g, ""); // strip all remaining HTML
 
   // 將 PTT 常見的 HTML 符號轉回文字
