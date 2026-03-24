@@ -39,9 +39,8 @@ HEADERS = {
     )
 }
 
-# 搜尋關鍵字
-TITLE_KEYWORDS = ["售票"]
-CONTENT_KEYWORDS = ["孫燕姿"]
+# 搜尋關鍵字（標題必須同時包含所有關鍵字）
+TITLE_MUST_CONTAIN = ["售票", "孫燕姿"]
 
 # 進階篩選條件（文章內文）
 DATE_KEYWORDS = ["5/15", "5/17", "05/15", "05/17", "5月15", "5月17"]
@@ -139,37 +138,89 @@ def parse_post_list(soup: BeautifulSoup) -> list[dict]:
         # 取得推文數
         nrec_tag = entry.select_one("div.nrec span")
         nrec = nrec_tag.text.strip() if nrec_tag else "0"
+        
+        # 取得發文日期
+        date_tag = entry.select_one("div.date")
+        post_date = date_tag.text.strip() if date_tag else ""
 
-        posts.append({"title": title, "url": url, "nrec": nrec})
+        posts.append({"title": title, "url": url, "nrec": nrec, "date": post_date})
     return posts
 
 
 def matches_title(title: str) -> bool:
-    """檢查標題是否包含售票相關關鍵字"""
-    return any(kw in title for kw in TITLE_KEYWORDS)
+    """檢查標題是否同時包含所有必要關鍵字（售票 + 孫燕姿）"""
+    return all(kw in title for kw in TITLE_MUST_CONTAIN)
 
 
-def fetch_post_content(url: str) -> str:
-    """取得文章內文純文字"""
+def parse_ptt_time(raw_time: str) -> str:
+    """將 PTT 時間格式轉換為 yyyy/mm/dd HH:MM:SS
+    
+    PTT 時間格式範例: 'Mon Mar 24 14:05:11 2026'
+    """
+    if not raw_time:
+        return ""
+    try:
+        dt = datetime.strptime(raw_time.strip(), "%a %b %d %H:%M:%S %Y")
+        return dt.strftime("%Y/%m/%d %H:%M:%S")
+    except ValueError:
+        # 無法解析就原樣回傳
+        return raw_time
+
+
+def fetch_post_content(url: str) -> tuple[str, str]:
+    """取得文章內文純文字與精確發文時間"""
     soup = fetch_page(url)
     if not soup:
-        return ""
+        return "", ""
     main_content = soup.select_one("div#main-content")
     if not main_content:
-        return ""
+        return "", ""
+
+    exact_time = ""
+    # 提取發文時間
+    for meta in main_content.select("div.article-metaline"):
+        tag_elem = meta.select_one("span.article-meta-tag")
+        val_elem = meta.select_one("span.article-meta-value")
+        if tag_elem and tag_elem.text.strip() == "時間" and val_elem:
+            exact_time = parse_ptt_time(val_elem.text.strip())
+
+    # 取得完整 HTML 再做文字萃取（避免 decompose 後內容遺失）
+    # 先複製一份用來提取純文字
+    import copy
+    content_clone = copy.copy(main_content)
+
     # 移除 metaline（作者/標題/時間）
-    for tag in main_content.select("div.article-metaline, div.article-metaline-right"):
+    for tag in content_clone.select("div.article-metaline, div.article-metaline-right"):
         tag.decompose()
     # 移除推文
-    for tag in main_content.select("div.push"):
+    for tag in content_clone.select("div.push"):
         tag.decompose()
-    return main_content.get_text(separator="\n", strip=True)
+    # 移除 anchor 之後的所有小元素殘留
+    for tag in content_clone.select("span.f2, span.f6"):
+        tag.decompose()
+
+    text = content_clone.get_text(separator="\n", strip=True)
+
+    # 如果內容為空，嘗試直接取原始文字（fallback）
+    if not text.strip():
+        # 取得 main-content 的完整內文，用正則移除 HTML 標籤
+        import re
+        raw_html = str(main_content)
+        # 移除所有 <div> 開頭到 </div> 結尾的 metaline/push 區塊
+        raw_html = re.sub(r'<div class="article-metaline[^"]*">.*?</div>', '', raw_html, flags=re.DOTALL)
+        raw_html = re.sub(r'<div class="push">.*?</div>', '', raw_html, flags=re.DOTALL)
+        # 移除剩餘 HTML 標籤
+        raw_html = re.sub(r'<[^>]+>', '', raw_html)
+        # 清理 HTML entities
+        raw_html = raw_html.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+        text = raw_html.strip()
+
+    return text, exact_time
 
 
 def matches_content(text: str, title: str) -> bool:
-    """檢查標題+內文是否包含孫燕姿"""
-    combined = title + " " + text
-    return any(kw in combined for kw in CONTENT_KEYWORDS)
+    """內容篩選已合併到標題篩選中，此處永遠回傳 True（保留供未來擴充）"""
+    return True
 
 
 def check_advanced_criteria(text: str, title: str) -> dict:
@@ -203,6 +254,7 @@ def format_telegram_message(post: dict, criteria: dict, content_preview: str) ->
         f"⏰ 掃描時間: {scan_time}\n"
         f"📌 {post['title']}\n"
         f"🔗 {post['url']}\n"
+        f"🗓️ 發文日期: {post.get('date', '')}\n"
         f"👍 推文數: {post['nrec']}\n"
         f"📅 日期關鍵字: {dates_str}\n"
         f"💺 座位關鍵字: {seats_str}\n"
@@ -259,8 +311,7 @@ def main():
     print("🎯 PTT Drama-Ticket 售票監控系統啟動")
     print("══════════════════════════════════════════════")
     print(f"[CONFIG] 目標看板: Drama-Ticket")
-    print(f"[CONFIG] 標題篩選: {TITLE_KEYWORDS}")
-    print(f"[CONFIG] 內容篩選: {CONTENT_KEYWORDS}")
+    print(f"[CONFIG] 標題必須同時含: {TITLE_MUST_CONTAIN}")
     print(f"[CONFIG] 進階日期: {DATE_KEYWORDS}")
     print(f"[CONFIG] 進階座位: {SEAT_KEYWORDS}")
     print(f"[CONFIG] 爬取頁數: {MAX_PAGES}")
@@ -313,18 +364,21 @@ def main():
                 stats["posts_skipped_seen"] += 1
                 continue
 
-            # 第一層篩選：標題含「售票」
+            # 篩選：標題必須同時含「售票」與「孫燕姿」
             if not matches_title(post["title"]):
                 continue
 
             stats["posts_title_match"] += 1
             print(f"   🔍 [標題符合] {post['title']}")
 
-            # 取得文章內文
-            content = fetch_post_content(post["url"])
+            # 取得文章內文與精確發文時間
+            content, exact_time = fetch_post_content(post["url"])
+            if exact_time:
+                post["date"] = f"{post['date']} ({exact_time})"
+                
             time.sleep(0.5)  # 避免請求過快
 
-            # 第二層篩選：內容含「孫燕姿」
+            # 內容檢查（標題已篩選孫燕姿，此處預留未來擴充）
             if not matches_content(content, post["title"]):
                 print(f"      ↳ 內容不符，跳過")
                 continue
