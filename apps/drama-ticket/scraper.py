@@ -11,6 +11,7 @@ import json
 import os
 import sys
 import time
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -192,9 +193,14 @@ def format_telegram_message(post: dict, criteria: dict, content_preview: str) ->
     # 內文預覽（最多 500 字）
     preview = content_preview[:500].replace("\n", "\n> ")
 
+    # 取得台灣時間
+    tw_tz = timezone(timedelta(hours=8))
+    scan_time = datetime.now(tw_tz).strftime("%Y-%m-%d %H:%M:%S")
+
     msg = (
         f"{match_level}\n"
         f"━━━━━━━━━━━━━━━━\n"
+        f"⏰ 掃描時間: {scan_time}\n"
         f"📌 {post['title']}\n"
         f"🔗 {post['url']}\n"
         f"👍 推文數: {post['nrec']}\n"
