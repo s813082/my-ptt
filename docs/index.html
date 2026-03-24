@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTT 台股情緒雷達 | 每日多空分析</title>
+    <meta name="description" content="每日自動分析 PTT Stock 板盤中閒聊留言，追蹤台股投資人多空情緒變化趨勢。">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Chart.js & WordCloud -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Background particles -->
+    <div class="bg-grid"></div>
+
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-inner">
+                <div class="logo">
+                    <div class="logo-mark">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <path d="M4 24 L10 14 L16 18 L22 8 L28 12" stroke="url(#g1)" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <defs>
+                                <linearGradient id="g1" x1="4" y1="24" x2="28" y2="8" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stop-color="#f43f5e" />
+                                    <stop offset="100%" stop-color="#22d3ee" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="logo-text">
+                        <h1>PTT 情緒雷達</h1>
+                        <p>Stock Sentiment Radar</p>
+                    </div>
+                </div>
+                <div class="header-controls">
+                    <div class="live-pill" id="liveBadge">
+                        <span class="live-dot"></span>
+                        <span>LIVE</span>
+                    </div>
+                    <div class="date-nav">
+                        <button class="date-btn" id="prevDay" title="前一天">‹</button>
+                        <input type="date" id="datePicker" class="date-input">
+                        <button class="date-btn" id="nextDay" title="後一天">›</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading -->
+        <div class="state-overlay" id="loadingState">
+            <div class="radar-loader">
+                <div class="radar-ring r1"></div>
+                <div class="radar-ring r2"></div>
+                <div class="radar-ring r3"></div>
+                <div class="radar-dot"></div>
+            </div>
+            <p class="state-text">掃描市場情緒中...</p>
+        </div>
+
+        <!-- Error -->
+        <div class="state-overlay hidden" id="errorState">
+            <div class="error-icon">📡</div>
+            <h2 id="errorTitle">尚無資料</h2>
+            <p id="errorMessage">目前沒有可用的分析資料。系統將於每個交易日 14:00 自動更新。</p>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main hidden" id="mainContent">
+
+            <!-- KPI Strip -->
+            <section class="kpi-strip">
+                <div class="kpi-card" id="kpiTaiex">
+                    <div class="kpi-icon">📈</div>
+                    <div class="kpi-body">
+                        <span class="kpi-label">加權指數</span>
+                        <span class="kpi-value" id="taiexValue">—</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">📊</div>
+                    <div class="kpi-body">
+                        <span class="kpi-label">漲跌幅</span>
+                        <span class="kpi-value" id="changeValue">—</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">💬</div>
+                    <div class="kpi-body">
+                        <span class="kpi-label">分析留言數</span>
+                        <span class="kpi-value" id="commentCount">—</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">🔗</div>
+                    <div class="kpi-body">
+                        <span class="kpi-label">文章來源</span>
+                        <a class="kpi-link" id="sourceLink" href="#" target="_blank">PTT Stock 板</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sentiment Overview Row -->
+            <section class="grid-overview">
+
+                <!-- Gauge Card -->
+                <div class="card card-gauge">
+                    <div class="card-header">
+                        <span class="card-tag">TODAY</span>
+                        <h2>今日情緒</h2>
+                        <span class="card-date" id="heroDate"></span>
+                    </div>
+                    <div class="gauge-wrap">
+                        <div class="gauge-ring-outer">
+                            <svg class="gauge-svg" viewBox="0 0 200 200">
+                                <defs>
+                                    <linearGradient id="bullGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#22d3ee" />
+                                        <stop offset="100%" stop-color="#10b981" />
+                                    </linearGradient>
+                                    <linearGradient id="bearGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#f43f5e" />
+                                        <stop offset="100%" stop-color="#fb923c" />
+                                    </linearGradient>
+                                </defs>
+                                <circle class="gauge-bg" cx="100" cy="100" r="80" />
+                                <circle class="gauge-bull" id="gaugeBull" cx="100" cy="100" r="80" />
+                                <circle class="gauge-bear" id="gaugeBear" cx="100" cy="100" r="80" />
+                            </svg>
+                            <div class="gauge-center">
+                                <div class="gauge-emoji" id="gaugeEmoji">—</div>
+                                <div class="gauge-label" id="gaugeLabel">計算中</div>
+                            </div>
+                        </div>
+                        <div class="gauge-legend">
+                            <div class="gl-item bull">
+                                <div class="gl-bar"><span id="glBullBar" style="width:0%"></span></div>
+                                <div class="gl-meta">
+                                    <span>看多</span>
+                                    <span class="gl-pct" id="bullPct">0%</span>
+                                </div>
+                                <span class="gl-count" id="bullCount">0 則</span>
+                            </div>
+                            <div class="gl-item bear">
+                                <div class="gl-bar"><span id="glBearBar" style="width:0%"></span></div>
+                                <div class="gl-meta">
+                                    <span>看空</span>
+                                    <span class="gl-pct" id="bearPct">0%</span>
+                                </div>
+                                <span class="gl-count" id="bearCount">0 則</span>
+                            </div>
+                            <div class="gl-item neut">
+                                <div class="gl-bar"><span id="glNeutBar" style="width:0%"></span></div>
+                                <div class="gl-meta">
+                                    <span>中立</span>
+                                    <span class="gl-pct" id="neutPct">0%</span>
+                                </div>
+                                <span class="gl-count" id="neutCount">0 則</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Donut Chart Card -->
+                <div class="card card-donut">
+                    <div class="card-header">
+                        <span class="card-tag">RATIO</span>
+                        <h2>多空比例</h2>
+                    </div>
+                    <div class="donut-wrap">
+                        <div class="donut-chart-container">
+                            <canvas id="donutChart"></canvas>
+                            <div class="donut-center-label">
+                                <span class="dcl-title">情緒分佈</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Hourly Chart -->
+            <section class="card card-wide">
+                <div class="card-header">
+                    <span class="card-tag">INTRADAY</span>
+                    <h2>盤中情緒變化</h2>
+                    <p class="card-sub">各時段多空比例分佈（09:00 – 14:00）</p>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="hourlyChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Historical Trend -->
+            <section class="card card-wide" id="trendSection">
+                <div class="card-header">
+                    <span class="card-tag">HISTORY</span>
+                    <h2>歷史趨勢</h2>
+                    <p class="card-sub">每日多空比例走勢</p>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Word Cloud Analysis -->
+            <section class="card card-wide" id="wordCloudSection">
+                <div class="card-header">
+                    <span class="card-tag">TOPICS</span>
+                    <h2>熱門關鍵字分析</h2>
+                    <p class="card-sub">留言中常出現的詞彙</p>
+                </div>
+                <div class="wordcloud-wrap">
+                    <canvas id="wordCloudCanvas"></canvas>
+                </div>
+            </section>
+
+            <!-- Comment Feed -->
+            <section class="card card-wide">
+                <div class="card-header">
+                    <span class="card-tag">FEED</span>
+                    <h2>留言情緒一覽</h2>
+                    <p class="card-sub">Live 隨機抽樣分析結果</p>
+                </div>
+                <div class="comment-feed" id="commentFeed">
+                    <div class="feed-empty">載入中...</div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <footer class="footer">
+                <p>📡 資料來源：<a href="https://www.ptt.cc/bbs/Stock/index.html" target="_blank">PTT Stock 板</a>　｜　🤖 情緒分析由
+                    AI 模型驅動　｜　⚠️ 僅供參考，不構成投資建議</p>
+                <p class="footer-update">最後更新：<span id="lastUpdate">—</span></p>
+            </footer>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

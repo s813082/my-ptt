@@ -1,0 +1,52 @@
+name: PTT Drama-Ticket Monitor
+
+on:
+  schedule:
+    # 5 個排程，每個間隔 5 分鐘，透過時間差實現約每分鐘檢查一次
+    - cron: "0/5 * * * *" # :00, :05, :10, :15, ...
+    - cron: "1/5 * * * *" # :01, :06, :11, :16, ...
+    - cron: "2/5 * * * *" # :02, :07, :12, :17, ...
+    - cron: "3/5 * * * *" # :03, :08, :13, :18, ...
+    - cron: "4/5 * * * *" # :04, :09, :14, :19, ...
+  workflow_dispatch: # 手動觸發
+
+jobs:
+  check-ptt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r drama-ticket/requirements.txt
+
+      # 從 cache 還原已通知文章紀錄，避免重複通知
+      - name: Restore seen posts cache
+        uses: actions/cache@v4
+        with:
+          path: drama-ticket/seen_posts.json
+          key: seen-posts-${{ github.run_id }}
+          restore-keys: |
+            seen-posts-
+
+      - name: Run PTT scraper
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        working-directory: drama-ticket
+        run: python scraper.py
+
+      # 將 seen_posts.json 存回 cache（下次執行時還原）
+      - name: Save seen posts
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: drama-ticket/seen_posts.json
+          key: seen-posts-${{ github.run_id }}

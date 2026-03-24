@@ -1,0 +1,891 @@
+/* ====================================================
+   PTT 情緒雷達 — Premium Dark UI
+   ==================================================== */
+
+:root {
+    --bg: #07090f;
+    --bg2: #0d1117;
+    --bg3: #13181f;
+    --card: rgba(255, 255, 255, 0.040);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-hover: rgba(255, 255, 255, 0.065);
+
+    --bull: #22d3ee;
+    --bull2: #10b981;
+    --bear: #f43f5e;
+    --bear2: #fb923c;
+    --neut: #7c3aed;
+
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #475569;
+
+    --accent: #6366f1;
+    --glow-bull: 0 0 24px rgba(34, 211, 238, 0.18);
+    --glow-bear: 0 0 24px rgba(244, 63, 94, 0.18);
+
+    --radius: 20px;
+    --radius-sm: 12px;
+    --gap: 20px;
+    --max-w: 1280px;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+/* ── Background Grid ── */
+.bg-grid {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+}
+
+/* Subtle radial glow at top */
+body::before {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 600px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 65%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── Layout ── */
+.app {
+    position: relative;
+    z-index: 1;
+    max-width: var(--max-w);
+    margin: 0 auto;
+    padding: 0 var(--gap) 60px;
+}
+
+/* ── Header ── */
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 16px 0;
+    backdrop-filter: blur(20px) saturate(1.5);
+    background: rgba(7, 9, 15, 0.85);
+    border-bottom: 1px solid var(--card-border);
+    margin: 0 calc(-1 * var(--gap));
+    padding: 16px var(--gap);
+}
+
+.header-inner {
+    max-width: var(--max-w);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo-mark {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.logo-text h1 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.logo-text p {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.live-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: #4ade80;
+}
+
+.live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4ade80;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: scale(0.85);
+    }
+}
+
+.date-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.date-btn {
+    width: 34px;
+    height: 34px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.date-btn:hover {
+    background: var(--card-hover);
+    color: var(--text-primary);
+}
+
+.date-input {
+    height: 34px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    padding: 0 10px;
+    cursor: pointer;
+    outline: none;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.5);
+    cursor: pointer;
+}
+
+/* ── State Overlays ── */
+.state-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 16px;
+    text-align: center;
+}
+
+.state-overlay.hidden {
+    display: none !important;
+}
+
+/* Radar loader */
+.radar-loader {
+    position: relative;
+    width: 80px;
+    height: 80px;
+}
+
+.radar-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid rgba(99, 102, 241, 0.3);
+    animation: radar-expand 2s ease-out infinite;
+}
+
+.r1 {
+    width: 80px;
+    height: 80px;
+    top: 0;
+    left: 0;
+    animation-delay: 0s;
+}
+
+.r2 {
+    width: 80px;
+    height: 80px;
+    top: 0;
+    left: 0;
+    animation-delay: 0.6s;
+}
+
+.r3 {
+    width: 80px;
+    height: 80px;
+    top: 0;
+    left: 0;
+    animation-delay: 1.2s;
+}
+
+.radar-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+}
+
+@keyframes radar-expand {
+    0% {
+        transform: scale(0.3);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1.6);
+        opacity: 0;
+    }
+}
+
+.state-text {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.error-icon {
+    font-size: 3rem;
+}
+
+/* ── KPI Strip ── */
+.kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--gap);
+    margin: 24px 0 var(--gap);
+}
+
+.kpi-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.kpi-card:hover {
+    background: var(--card-hover);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.kpi-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.kpi-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.kpi-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.kpi-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.kpi-value.up {
+    color: var(--bull);
+}
+
+.kpi-value.down {
+    color: var(--bear);
+}
+
+.kpi-link {
+    font-size: 0.82rem;
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kpi-link:hover {
+    text-decoration: underline;
+}
+
+/* ── Cards ── */
+.card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 28px;
+    transition: border-color 0.2s;
+}
+
+.card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.card-wide {
+    margin-bottom: var(--gap);
+}
+
+.card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.card-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    padding: 3px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.card-header h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.card-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+.card-date {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: auto;
+}
+
+/* ── Sentiment Overview Grid ── */
+.grid-overview {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gap);
+    margin-bottom: var(--gap);
+}
+
+/* -- Gauge Card -- */
+.card-gauge .card-header h2 {
+    flex: 1;
+}
+
+.gauge-wrap {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+.gauge-ring-outer {
+    position: relative;
+    flex-shrink: 0;
+    width: 190px;
+    height: 190px;
+}
+
+.gauge-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.gauge-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 14;
+}
+
+.gauge-bull {
+    fill: none;
+    stroke: url(#bullGrad);
+    stroke-width: 14;
+    stroke-linecap: round;
+    stroke-dasharray: 502 502;
+    stroke-dashoffset: 502;
+    transition: stroke-dashoffset 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.gauge-bear {
+    fill: none;
+    stroke: url(#bearGrad);
+    stroke-width: 14;
+    stroke-linecap: round;
+    stroke-dasharray: 502 502;
+    stroke-dashoffset: 502;
+    transition: stroke-dashoffset 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s;
+}
+
+.gauge-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.gauge-emoji {
+    font-size: 2.2rem;
+    line-height: 1;
+}
+
+.gauge-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: -0.01em;
+}
+
+.gauge-legend {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.gl-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.gl-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.gl-meta span:first-child {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.gl-pct {
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.gl-count {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.gl-bar {
+    height: 5px;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.gl-bar span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bull .gl-pct {
+    color: var(--bull);
+}
+
+.bull .gl-bar span {
+    background: linear-gradient(90deg, var(--bull2), var(--bull));
+}
+
+.bear .gl-pct {
+    color: var(--bear);
+}
+
+.bear .gl-bar span {
+    background: linear-gradient(90deg, var(--bear2), var(--bear));
+}
+
+.neut .gl-pct {
+    color: #a78bfa;
+}
+
+.neut .gl-bar span {
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+
+/* -- Donut Card -- */
+.card-donut .card-header {
+    margin-bottom: 12px;
+}
+
+.donut-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 240px;
+}
+
+.donut-chart-container {
+    position: relative;
+    width: 220px;
+    height: 220px;
+}
+
+.donut-chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.donut-center-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.dcl-title {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* -- Chart wide -- */
+.chart-wrap {
+    height: 280px;
+}
+
+.chart-wrap canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ── Word Cloud ── */
+.wordcloud-wrap {
+    position: relative;
+    width: 100%;
+    height: 320px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#wordCloudCanvas {
+    width: 100%;
+    height: 100%;
+}
+
+
+/* ── Comment Feed ── */
+.comment-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.comment-feed::-webkit-scrollbar {
+    width: 5px;
+}
+
+.comment-feed::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.comment-feed::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.comment-item {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    gap: 10px;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    transition: background 0.15s;
+}
+
+.comment-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.ci-type {
+    font-size: 0.8rem;
+    font-weight: 600;
+    width: 28px;
+    text-align: center;
+    padding: 2px 6px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.type-推 {
+    background: rgba(34, 211, 238, 0.12);
+    color: var(--bull);
+}
+
+.type-噓 {
+    background: rgba(244, 63, 94, 0.12);
+    color: var(--bear);
+}
+
+.type-→ {
+    background: rgba(124, 58, 237, 0.12);
+    color: #a78bfa;
+}
+
+.ci-author {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+}
+
+.ci-content {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ci-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.ci-badge.bullish {
+    background: rgba(34, 211, 238, 0.12);
+    color: var(--bull);
+    border: 1px solid rgba(34, 211, 238, 0.25);
+}
+
+.ci-badge.bearish {
+    background: rgba(244, 63, 94, 0.12);
+    color: var(--bear);
+    border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+.ci-badge.neutral {
+    background: rgba(124, 58, 237, 0.12);
+    color: #a78bfa;
+    border: 1px solid rgba(124, 58, 237, 0.25);
+}
+
+.feed-empty {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    padding: 24px 0;
+    text-align: center;
+}
+
+/* Ticker animations */
+.comment-item.ticker-new {
+    opacity: 0;
+    transform: translateY(-16px) scaleY(0.92);
+    max-height: 0;
+    overflow: hidden;
+    transition:
+        opacity 0.35s ease,
+        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        max-height 0.35s ease;
+}
+
+.comment-item.ticker-visible {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    max-height: 80px;
+}
+
+.comment-item.ticker-out {
+    opacity: 0;
+    transform: translateY(8px);
+    max-height: 0;
+    padding: 0;
+    margin: 0;
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease,
+        max-height 0.3s ease,
+        padding 0.3s ease,
+        margin 0.3s ease;
+}
+
+/* ── Footer ── */
+.footer {
+    text-align: center;
+    padding: 32px 0 0;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 2;
+    border-top: 1px solid var(--card-border);
+    margin-top: 8px;
+}
+
+.footer a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.footer a:hover {
+    text-decoration: underline;
+}
+
+.footer-update {
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .grid-overview {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-strip {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .gauge-wrap {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .gauge-ring-outer {
+        width: 160px;
+        height: 160px;
+    }
+}
+
+@media (max-width: 600px) {
+    :root {
+        --gap: 14px;
+    }
+
+    .kpi-strip {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .card {
+        padding: 20px;
+    }
+
+    .header-inner {
+        gap: 10px;
+    }
+
+    .logo-text p {
+        display: none;
+    }
+
+    .date-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 1rem;
+    }
+
+    .comment-item {
+        grid-template-columns: auto 1fr auto;
+    }
+
+    .ci-author {
+        display: none;
+    }
+
+    .chart-wrap {
+        height: 220px;
+    }
+}

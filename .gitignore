@@ -1,0 +1,8 @@
+seen_posts.json
+drama-ticket/seen_posts.json
+__pycache__/
+*.pyc
+.env
+drama-ticket/.env
+.venv/
+drama-ticket/.venv/

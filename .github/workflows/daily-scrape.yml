@@ -1,0 +1,68 @@
+name: Daily PTT Sentiment Analysis
+
+on:
+  schedule:
+    # 台灣時間 09:00~13:30 每半小時（UTC 01:00~05:30）
+    - cron: '0,30 1-5 * * 1-5'
+    # 台灣時間 14:00（收盤後最後一輪，UTC 06:00）
+    - cron: '0 6 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '目標日期 (YYYY-MM-DD)，留空則為今天'
+        required: false
+        type: string
+      article_url:
+        description: '直接指定 PTT 文章 URL（跳過搜尋）'
+        required: false
+        type: string
+
+# 避免同一天同時跑多個 workflow（例如 cron + 手動觸發）
+concurrency:
+  group: daily-sentiment-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  models: read
+
+jobs:
+  scrape-and-analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: python -m pip install -r scripts/requirements.txt --quiet
+
+      - name: Run scraper & analyzer
+        env:
+          # GITHUB_TOKEN 由 Actions 自動提供，用於 GitHub Models API
+          # 若 GitHub Models 無法使用，可另設 MODELS_TOKEN（PAT with models:read）覆蓋
+          GITHUB_TOKEN: ${{ secrets.MODELS_TOKEN || secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            ARGS="$ARGS --date ${{ github.event.inputs.date }}"
+          fi
+          if [ -n "${{ github.event.inputs.article_url }}" ]; then
+            ARGS="$ARGS --url ${{ github.event.inputs.article_url }}"
+          fi
+          python3 scripts/main.py $ARGS
+
+      - name: Sync data to docs/data (safety net)
+        run: |
+          # main.py 已自動同步，此步驟作為安全網確保 docs/data/ 與 data/ 一致
+          mkdir -p docs/data
+          cp -f data/*.json docs/data/ 2>/dev/null || true
+
+      - name: Commit and push results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ docs/
+          git diff --staged --quiet || git commit -m "📊 Update sentiment data for $(date +%Y-%m-%d -u)"
+          git push

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-TW"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>姊姊的盤中監視器 | PTT Stock Sentiment Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ef4444",
+                        "bullish": "#ef4444",
+                        "bearish": "#10b981",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#0a0a0a",
+                        "card-dark": "#161616",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "Noto Sans TC", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass {
+            background: rgba(22, 22, 22, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen">
+<div class="relative flex flex-col w-full min-h-screen overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 glass border-b border-white/5 px-6 py-3 flex items-center justify-between">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-primary/20 rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">monitoring</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight">姊姊的盤中監視器</h1>
+<p class="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">PTT Stock Sentiment Engine</p>
+</div>
+</div>
+<nav class="hidden md:flex items-center gap-6 ml-8">
+<a class="text-sm font-medium text-primary border-b-2 border-primary pb-1" href="#">儀表板</a>
+<a class="text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors" href="#">市場地圖</a>
+<a class="text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors" href="#">姊姊精選</a>
+<a class="text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors" href="#">歷史存檔</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden lg:flex flex-col items-end mr-4">
+<span class="text-xs text-slate-500 font-medium uppercase">Market Time</span>
+<span class="text-sm font-mono font-bold text-slate-200">11:42:05 TPE</span>
+</div>
+<div class="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+<span class="text-xs font-bold text-primary uppercase tracking-wider">Live: Trading</span>
+</div>
+<button class="p-2 hover:bg-white/5 rounded-full text-slate-400">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="size-9 rounded-full bg-slate-800 border border-white/10 overflow-hidden">
+<img alt="User Avatar" data-alt="Stylized female avatar for user profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDiVzJoEDltadY4GWONUEvb_2AcgJGbsGC79EcjPmtT7qsVmjpXUhIocrWKjHKwpBoF6NaTaAGC1gotWe6n6_pJoir_UcQwAjYYS7mXkNtf8o7bpvtJnRm8B8zhD4uFaLiFh2HAd6qKuTOOxfZjZGKeJNECeiH6eMyOZkK7L_iz52ErGfn-nJdmYzEiCnzvOOH8DPiFnAvLyT3eAesPyKdcncyUONcGoRUwH1x6UCc_aeiOeU9zigAF6DKsgZmh8QRaTCCD_fnKMio"/>
+</div>
+</div>
+</header>
+<main class="flex-1 max-w-7xl mx-auto w-full p-6 space-y-6">
+<!-- Top Metrics Row -->
+<!-- Main Content Grid -->
+<!-- Overall Assessment Row -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+<!-- Sentiment Score Card -->
+<div class="glass rounded-xl p-5 flex flex-col justify-between">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-sm font-bold text-slate-400 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">analytics</span>
+                目前情緒指數
+            </h3>
+<span class="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Bullish</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-5xl font-black text-primary">+68</span>
+<span class="text-sm text-slate-500 font-medium">/ 100</span>
+</div>
+<p class="text-[10px] text-slate-500 mt-2 font-medium uppercase tracking-widest">Market Sentiment Score</p>
+</div>
+<!-- Bull vs Bear Ratio Card -->
+<div class="glass rounded-xl p-5 flex flex-col justify-between">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-sm font-bold text-slate-400 flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-lg">balance</span>
+                多空比例
+            </h3>
+<div class="flex gap-3 text-[10px] font-bold">
+<span class="text-primary">多 62%</span>
+<span class="text-bearish">空 38%</span>
+</div>
+</div>
+<div class="w-full h-4 bg-slate-800 rounded-full overflow-hidden flex">
+<div class="h-full bg-primary" style="width: 62%"></div>
+<div class="h-full bg-bearish" style="width: 38%"></div>
+</div>
+<div class="flex justify-between mt-3">
+<span class="text-[10px] text-slate-500 font-bold uppercase">Bull Force</span>
+<span class="text-[10px] text-slate-500 font-bold uppercase">Bear Force</span>
+</div>
+</div>
+<!-- AI Summary Card -->
+<div class="glass rounded-xl p-5 flex flex-col">
+<h3 class="text-sm font-bold text-slate-400 mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-blue-400 text-lg">smart_toy</span>
+            AI 盤勢總結
+        </h3>
+<p class="text-sm text-slate-300 leading-relaxed">
+            目前市場多頭氛圍濃厚，長榮與航運板塊帶動整體信心回升。散戶情緒偏向樂觀，但需注意高檔調節壓力，GG 尾盤動向為後續觀察重點。
+        </p>
+</div>
+</div><div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Chart Area -->
+<div class="lg:col-span-2 glass rounded-xl p-6 flex flex-col min-h-[450px]">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h2 class="text-lg font-bold text-slate-100">多空走勢圖</h2>
+<p class="text-sm text-slate-500">即時量能與情緒分析 <span class="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded ml-2">● 與播放進度同步</span></p>
+</div>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-slate-800 text-slate-300 border border-white/5">09:00 - 14:00</span>
+</div>
+</div>
+<div class="flex-1 relative">
+<!-- Custom SVG Chart Visualization -->
+<svg class="w-full h-full min-h-[300px]" preserveaspectratio="none" viewbox="0 0 800 300">
+<defs>
+<lineargradient id="chartGradient" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#10b77f" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="#fa5838" stop-opacity="0.05"></stop>
+</lineargradient>
+<lineargradient id="lineGradient" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#10b77f"></stop>
+<stop offset="60%" stop-color="#10b77f"></stop>
+<stop offset="100%" stop-color="#fa5838"></stop>
+</lineargradient>
+</defs>
+<!-- Grid Lines -->
+<line stroke="rgba(255,255,255,0.03)" stroke-width="1" x1="0" x2="800" y1="50" y2="50"></line>
+<line stroke="rgba(255,255,255,0.03)" stroke-width="1" x1="0" x2="800" y1="150" y2="150"></line>
+<line stroke="rgba(255,255,255,0.03)" stroke-width="1" x1="0" x2="800" y1="250" y2="250"></line>
+<!-- Area Path -->
+<path d="M0,150 Q100,80 200,100 T400,120 T600,60 T800,220 V300 H0 Z" fill="url(#chartGradient)"></path>
+<!-- Line Path -->
+<path d="M0,150 Q100,80 200,100 T400,120 T600,60 T800,220" fill="none" stroke="url(#lineGradient)" stroke-linecap="round" stroke-width="4"></path>
+<!-- Current Point -->
+<circle class="animate-pulse" cx="600" cy="60" fill="#ef4444" r="6"></circle>
+</svg>
+<!-- Time Axis -->
+<div class="flex justify-between mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2">
+<span>09:00</span>
+<span>10:00</span>
+<span>11:00</span>
+<span>12:00</span>
+<span>13:00</span>
+<span>14:00</span>
+</div>
+<!-- Playback Controls -->
+<div class="mt-8 pt-6 border-t border-white/5 flex flex-col gap-4">
+<div class="flex items-center gap-4">
+<button class="size-10 rounded-full bg-primary text-white flex items-center justify-center hover:scale-105 transition-transform">
+<span class="material-symbols-outlined">play_arrow</span>
+</button>
+<div class="flex-1 h-1.5 bg-slate-800 rounded-full relative">
+<div class="absolute inset-y-0 left-0 w-[65%] bg-primary rounded-full"></div>
+<div class="absolute top-1/2 left-[65%] -translate-y-1/2 size-4 bg-white border-2 border-primary rounded-full shadow-lg cursor-pointer"></div>
+</div>
+<span class="text-xs font-mono text-slate-300">12:30</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<button class="px-3 py-1 text-[10px] font-bold rounded bg-slate-800 text-slate-400 border border-white/5 hover:text-white transition-colors">1x</button>
+<button class="px-3 py-1 text-[10px] font-bold rounded bg-primary/20 text-primary border border-primary/30">2x</button>
+<button class="px-3 py-1 text-[10px] font-bold rounded bg-slate-800 text-slate-400 border border-white/5 hover:text-white transition-colors">5x</button>
+</div>
+<div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Playback Progress</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Word Cloud & Insights -->
+<div class="flex flex-col gap-6">
+<div class="glass rounded-xl p-6 flex-1">
+<h2 class="text-lg font-bold text-slate-100 mb-4">熱門關鍵字 / 文字雲</h2>
+<div class="flex flex-wrap gap-2"><div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 py-4">
+<span class="text-5xl font-black text-primary hover:scale-110 transition-transform cursor-default">長榮</span>
+<span class="text-sm font-medium text-slate-500 hover:text-slate-300 transition-colors">多頭不死</span>
+<span class="text-4xl font-black text-bearish -rotate-2 hover:scale-110 transition-transform cursor-default">空頭不死</span>
+<span class="text-2xl font-bold text-slate-300">GG</span>
+<span class="text-3xl font-extrabold text-primary rotate-3 hover:scale-110 transition-transform cursor-default">噴噴</span>
+<span class="text-xs font-light text-slate-500">救命</span>
+<span class="text-xl font-semibold text-slate-200">航運</span>
+<span class="text-lg font-medium text-slate-400">台積電</span>
+<span class="text-sm font-bold text-slate-500">高股息</span>
+<span class="text-2xl font-bold text-bearish hover:scale-110 transition-transform cursor-default">救我</span>
+<span class="text-4xl font-black text-primary">萬九</span>
+<span class="text-base font-normal text-slate-400">隔日沖</span>
+<span class="text-3xl font-bold text-slate-100">韭菜</span>
+<span class="text-lg font-semibold text-primary">漲停</span>
+<span class="text-xs font-medium text-slate-600">減資</span>
+<span class="text-2xl font-black text-bearish">跌停</span>
+<span class="text-xl font-bold text-slate-300">外資</span>
+<span class="text-sm font-light text-slate-500">融資</span>
+<span class="text-3xl font-extrabold text-primary">大盤</span>
+<span class="text-lg font-medium text-bearish">止損</span>
+</div></div>
+</div>
+<!-- Sister's Daily Insight -->
+</div>
+</div>
+<!-- Bottom Feed -->
+<div class="glass rounded-xl overflow-hidden">
+<div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+<h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">chat_bubble</span>
+即時留言板 <span class="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded ml-2 font-normal">● 隨播放進度更新</span>
+</h2>
+<button class="text-xs font-bold text-slate-400 hover:text-white uppercase tracking-widest">重新整理</button>
+</div>
+<div class="divide-y divide-white/5">
+<!-- Comment Item 1 -->
+<div class="p-4 hover:bg-white/[0.02] transition-colors flex gap-4">
+<div class="flex flex-col items-center gap-1">
+<span class="px-2 py-0.5 rounded bg-primary text-background-dark text-[10px] font-black uppercase">看多</span>
+<span class="text-[10px] font-mono text-slate-500">11:41</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold text-slate-400">stock_master99</span>
+<span class="text-[10px] text-slate-600">• PTT Stock</span>
+</div>
+<p class="text-sm text-slate-200">長榮這波沒上車的現在都後悔了吧？嘎爆空頭真的爽！</p>
+</div>
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1 text-slate-500 text-xs"><span class="material-symbols-outlined text-sm">thumb_up</span> 42</span>
+</div>
+</div>
+<!-- Comment Item 2 -->
+<div class="p-4 hover:bg-white/[0.02] transition-colors flex gap-4">
+<div class="flex flex-col items-center gap-1">
+<span class="px-2 py-0.5 rounded bg-bearish text-background-dark text-[10px] font-black uppercase">看空</span>
+<span class="text-[10px] font-mono text-slate-500">11:38</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold text-slate-400">bear_forever</span>
+<span class="text-[10px] text-slate-600">• PTT Stock</span>
+</div>
+<p class="text-sm text-slate-200">GG又在拉尾盤，明顯在出貨，大家小心被割韭菜啊...</p>
+</div>
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1 text-slate-500 text-xs"><span class="material-symbols-outlined text-sm">thumb_up</span> 18</span>
+</div>
+</div>
+<!-- Comment Item 3 -->
+<div class="p-4 hover:bg-white/[0.02] transition-colors flex gap-4">
+<div class="flex flex-col items-center gap-1">
+<span class="px-2 py-0.5 rounded bg-primary text-background-dark text-[10px] font-black uppercase">看多</span>
+<span class="text-[10px] font-mono text-slate-500">11:35</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold text-slate-400">diamond_hands</span>
+<span class="text-[10px] text-slate-600">• PTT Stock</span>
+</div>
+<p class="text-sm text-slate-200">噴噴噴！大盤站穩萬九，空頭下去領 500 啦！</p>
+</div>
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1 text-slate-500 text-xs"><span class="material-symbols-outlined text-sm">thumb_up</span> 105</span>
+</div>
+</div>
+</div>
+<div class="p-4 glass text-center border-t border-white/5">
+<button class="text-sm font-bold text-slate-400 hover:text-primary transition-colors uppercase tracking-widest">載入更多即時留言</button>
+</div>
+</div>
+</main>
+<footer class="mt-auto p-6 border-t border-white/5 glass">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-xs text-slate-500">© 2024 姊姊的盤中監視器。數據源自 PTT Stock 與台灣證券交易所 API。</p>
+<div class="flex gap-6">
+<a class="text-xs font-bold text-slate-400 hover:text-white uppercase" href="#">隱私權政策</a>
+<a class="text-xs font-bold text-slate-400 hover:text-white uppercase" href="#">API 條款</a>
+<a class="text-xs font-bold text-slate-400 hover:text-white uppercase" href="#">聯絡我們</a>
+</div>
+</div>
+</footer>
+</div>
+</body></html>
