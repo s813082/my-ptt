@@ -80,6 +80,54 @@ pip install -r apps/drama-ticket/requirements.txt
 pip install -r apps/sentiment-radar/requirements.txt
 ```
 
+## ❓ 常見問題 (FAQ)
+
+<details>
+<summary><b>Q1：如何設定 Telegram Bot Token 與 Chat ID？</b></summary>
+
+1. **建立 Telegram Bot**：在 Telegram 搜尋 [@BotFather](https://t.me/BotFather)，輸入 `/newbot` 依指示建立，取得 `Bot Token`。
+2. **取得 Chat ID**：向剛建立的 Bot 發送任意訊息，然後開啟 `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`，在回傳的 JSON 中找到 `chat.id`。
+3. **設定 GitHub Secrets**：
+   - 前往你的 GitHub Repo → **Settings** → **Secrets and variables** → **Actions**
+   - 點擊 **New repository secret**，分別新增：
+     - `TELEGRAM_BOT_TOKEN`：填入 Bot Token
+     - `TELEGRAM_CHAT_ID`：填入 Chat ID
+
+</details>
+
+<details>
+<summary><b>Q2：Workflow 排程沒有跑？</b></summary>
+
+- **確認 Secrets 已設定**：前往 Settings → Secrets 確認 `TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID` 已新增。
+- **GitHub 排程延遲**：GitHub Actions 的 cron 排程不保證準時，可能有 3~15 分鐘的延遲，這是正常現象。
+- **手動觸發測試**：前往 Actions 頁面 → 選擇 Workflow → 點擊 **Run workflow** 手動執行，確認流程是否正常。
+- **Fork 的 Repo**：如果是 Fork 來的，需到 Actions 頁面手動啟用 Workflows。
+
+</details>
+
+<details>
+<summary><b>Q3：為什麼收不到 Telegram 通知？</b></summary>
+
+- 確認你已經**主動向 Bot 發送過訊息**（Bot 無法主動對未互動的使用者發送訊息）。
+- 確認 `TELEGRAM_CHAT_ID` 是正確的數字（個人聊天為正數，群組為負數）。
+- 檢查 GitHub Actions 的執行日誌，搜尋 `[ERROR]` 或 `[WARN]` 關鍵字。
+
+</details>
+
+<details>
+<summary><b>Q4：如何新增或修改監控的關鍵字？</b></summary>
+
+編輯 `apps/drama-ticket/scraper.py` 中的以下變數：
+
+```python
+TITLE_KEYWORDS = ["售票"]          # 標題必須包含的關鍵字
+CONTENT_KEYWORDS = ["孫燕姿"]      # 內文必須包含的關鍵字
+DATE_KEYWORDS = ["5/15", "5/17"]   # 進階篩選：日期
+SEAT_KEYWORDS = ["連號", "兩張"]    # 進階篩選：座位
+```
+
+</details>
+
 ---
 
 ## 📜 聲明 (Disclaimer)
@@ -87,4 +135,3 @@ pip install -r apps/sentiment-radar/requirements.txt
 如有侵權或任何問題，請聯繫開發者。
 
 ---
-*(＃`Д´) 笨蛋弟弟，這是姊姊幫你寫的，給我好好珍惜喔！*

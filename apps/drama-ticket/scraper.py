@@ -54,7 +54,7 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 # 已通知文章記錄檔（避免重複通知）
 SEEN_FILE = Path(__file__).parent / "seen_posts.json"
 # 爬取頁數（往前翻幾頁）
-MAX_PAGES = 10
+MAX_PAGES = 3
 # HTTP 重試設定
 MAX_RETRIES = 3
 RETRY_BACKOFF = 1.5  # 每次重試等待秒數的倍率

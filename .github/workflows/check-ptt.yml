@@ -19,6 +19,8 @@ jobs:
   check-ptt:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       # ── 步驟 1：拉取程式碼 ──────────────────────────────
