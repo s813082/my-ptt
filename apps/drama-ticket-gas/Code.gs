@@ -22,8 +22,8 @@ const CONFIG = {
 };
 
 // 🔴 請填入你的 Telegram 機器人憑證
-const TELEGRAM_BOT_TOKEN = "8227096359:AAGXRENtOgu__ZeJpldWe_B0qwFmIgUalW8";
-const TELEGRAM_CHAT_ID = "1141576540";
+const TELEGRAM_BOT_TOKEN = "TELEGRAM_BOT_TOKEN";
+const TELEGRAM_CHAT_ID = "TELEGRAM_CHAT_ID";
 
 // ── 主程式 ───────────────────────────────────────────
 function main() {
@@ -174,7 +174,7 @@ function fetchPostContent(url) {
   // 萃取 main-content (用 split 比 regex 穩定，不會被中間的 </div> 騙)
   let parts = html.split('<div id="main-content" class="bbs-screen bbs-content">');
   if (parts.length < 2) return { content: "", exactTime: "" };
-  
+
   // 切掉尾巴的 article-polling 等不需要的區塊
   let content = parts[1].split('<div id="article-polling"')[0];
 
