@@ -1,6 +1,6 @@
 /**
  * PTT Drama-Ticket 孫燕姿演唱會售票監控爬蟲 (Google Apps Script 版本)
- * 
+ *
  * 【安裝與執行說明】
  * 1. 在 Google Drive 建立一個新的 Google Apps Script 專案。
  * 2. 將此程式碼貼上覆蓋預設的 Code.gs。
@@ -22,13 +22,13 @@ const CONFIG = {
 };
 
 // 🔴 請填入你的 Telegram 機器人憑證
-const TELEGRAM_BOT_TOKEN = "請在此填入你的_TELEGRAM_BOT_TOKEN";
-const TELEGRAM_CHAT_ID = "請在此填入你的_TELEGRAM_CHAT_ID";
+const TELEGRAM_BOT_TOKEN = "8227096359:AAGXRENtOgu__ZeJpldWe_B0qwFmIgUalW8";
+const TELEGRAM_CHAT_ID = "1141576540";
 
 // ── 主程式 ───────────────────────────────────────────
 function main() {
   Logger.log("🎯 PTT Drama-Ticket GAS 監控啟動");
-  
+
   if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN.includes("請在此填入")) {
     Logger.log("[WARN] 尚未設定 Telegram Token，將無法發送通知！");
   }
@@ -39,7 +39,7 @@ function main() {
 
   for (let page = 0; page < CONFIG.MAX_PAGES; page++) {
     Logger.log(`📄 [頁面 ${page + 1}/${CONFIG.MAX_PAGES}] ${currentUrl}`);
-    
+
     let html = fetchPage(currentUrl);
     if (!html) break;
 
@@ -134,7 +134,7 @@ function parsePostList(html) {
   // Regex 抓取列表項目
   let regex = /<div class="r-ent">[\s\S]*?<div class="nrec">([\s\S]*?)<\/div>[\s\S]*?<div class="title">\s*(<a href="([^"]+)">([^<]+)<\/a>|[^<]+)\s*<\/div>[\s\S]*?<div class="date">([^<]+)<\/div>/g;
   let match;
-  
+
   while ((match = regex.exec(html)) !== null) {
     let nrecHtml = match[1];
     let nrec = "0";
@@ -142,11 +142,11 @@ function parsePostList(html) {
       let nrecMatch = nrecHtml.match(/>([^<]+)<\/span>/);
       if (nrecMatch) nrec = nrecMatch[1];
     }
-    
+
     let href = match[3];
     let title = match[4];
     let postDate = match[5] ? match[5].trim() : "";
-    
+
     if (href && title) {
       posts.push({
         title: title.trim(),
@@ -159,29 +159,37 @@ function parsePostList(html) {
   return posts;
 }
 
+function parsePttTime(rawTime) {
+  if (!rawTime) return "";
+  // PTT time format: Mon Mar 24 14:12:17 2026
+  let d = new Date(rawTime);
+  if (isNaN(d.getTime())) return rawTime;
+  return Utilities.formatDate(d, "Asia/Taipei", "yyyy/MM/dd HH:mm:ss");
+}
+
 function fetchPostContent(url) {
   let html = fetchPage(url);
   if (!html) return { content: "", exactTime: "" };
-  
+
   // 萃取 main-content
   let match = html.match(/<div id="main-content" class="bbs-screen bbs-content">([\s\S]*?)<\/div>\s*(?:<div id="navigation"|<div class="push|<!-- cache)/);
   if (!match) return { content: "", exactTime: "" };
-  
+
   let content = match[1];
-  
+
   // 提取精確發文時間
   let exactTime = "";
-  let timeMatch = content.match(/<div class="article-metaline"><span class="article-meta-tag">時間<\/span><span class="article-meta-value">([^<]+)<\/span><\/div>/);
-  if (timeMatch) exactTime = timeMatch[1];
-  
+  let timeMatch = content.match(/<span class="article-meta-tag">時間<\/span><span class="article-meta-value">([^<]+)<\/span>/);
+  if (timeMatch) exactTime = parsePttTime(timeMatch[1].trim());
+
   // 移除 span 標籤 (推文或屬性) 與 div (發文時間列等)
-  content = content.replace(/<span[^>]*>[\s\S]*?<\/span>/g, "");
   content = content.replace(/<div class="article-metaline[^>]*>[\s\S]*?<\/div>/g, "");
-  content = content.replace(/<a href=[^>]+>|<\/a>/g, "");
-  
+  content = content.replace(/<div class="push">[\s\S]*?<\/div>/g, "");
+  content = content.replace(/<[^>]+>/g, ""); // strip all remaining HTML
+
   // 將 PTT 常見的 HTML 符號轉回文字
   content = content.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-  
+
   return { content: content.trim(), exactTime: exactTime };
 }
 
@@ -207,9 +215,9 @@ function formatTelegramMessage(post, criteria, content) {
   let matchLevel = criteria.isHighMatch ? "🔥 高度符合" : "📋 可能相關";
   let datesStr = criteria.dates.length > 0 ? criteria.dates.join(", ") : "未明確提到";
   let seatsStr = criteria.seats.length > 0 ? criteria.seats.join(", ") : "未明確提到";
-  
+
   let preview = content.substring(0, 300).replace(/\n/g, "\n> ");
-  
+
   // 取得台北時間
   let now = new Date();
   let timeStr = Utilities.formatDate(now, "Asia/Taipei", "yyyy-MM-dd HH:mm:ss");
@@ -219,7 +227,7 @@ function formatTelegramMessage(post, criteria, content) {
 ⏰ 掃描時間: ${timeStr}
 📌 ${post.title}
 🔗 ${post.url}
-📝 發文日期: ${post.date}
+🗓️ 發文日期: ${post.date}
 👍 推文數: ${post.nrec}
 📅 日期: ${datesStr}
 💺 座位: ${seatsStr}
@@ -231,21 +239,21 @@ function formatTelegramMessage(post, criteria, content) {
 
 function sendTelegram(message) {
   if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN.includes("請在此填入")) return;
-  
+
   let url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
   let payload = {
     "chat_id": TELEGRAM_CHAT_ID,
     "text": message,
     "disable_web_page_preview": false
   };
-  
+
   let options = {
     "method": "post",
     "contentType": "application/json",
     "payload": JSON.stringify(payload),
     "muteHttpExceptions": true
   };
-  
+
   try {
     let response = UrlFetchApp.fetch(url, options);
     Logger.log(`[Telegram] 回應碼: ${response.getResponseCode()}`);
