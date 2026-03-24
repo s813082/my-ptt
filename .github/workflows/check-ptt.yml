@@ -6,7 +6,7 @@ on:
   workflow_dispatch: # 手動觸發
 
 concurrency:
-  group: drama-ticket-monitor
+  group: drama-ticket-monitor-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
