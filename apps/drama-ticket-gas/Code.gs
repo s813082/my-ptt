@@ -4,7 +4,9 @@
  * 【安裝與執行說明】
  * 1. 在 Google Drive 建立一個新的 Google Apps Script 專案。
  * 2. 將此程式碼貼上覆蓋預設的 Code.gs。
- * 3. 填寫下方的 TELEGRAM_BOT_TOKEN 與 TELEGRAM_CHAT_ID。
+ * 3. 在「專案設定 > 指令碼屬性」新增：
+ *    - TELEGRAM_BOT_TOKEN
+ *    - TELEGRAM_CHAT_ID
  * 4. 點擊上方的「執行」按鈕測試 (第一次會要求授權連線)。
  * 5. 點擊左側時鐘圖示 (觸發條件)，新增一個「時間驅動」->「每分鐘」的觸發器。
  */
@@ -21,17 +23,38 @@ const CONFIG = {
   MAX_SEEN_POSTS: 500, // 記憶已通知的數量上限
 };
 
-// 🔴 請填入你的 Telegram 機器人憑證
-const TELEGRAM_BOT_TOKEN = "TELEGRAM_BOT_TOKEN";
-const TELEGRAM_CHAT_ID = "TELEGRAM_CHAT_ID";
+const TELEGRAM_BOT_TOKEN = "8227096359:AAH6ughVdp8lwRZmNCU9qvuRumCYYZ2gfro";
+const TELEGRAM_CHAT_ID = "1141576540";
 
 // ── 主程式 ───────────────────────────────────────────
 function main() {
   Logger.log("🎯 PTT Drama-Ticket GAS 監控啟動");
 
-  if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN.includes("請在此填入")) {
-    Logger.log("[WARN] 尚未設定 Telegram Token，將無法發送通知！");
+  let telegram = loadTelegramConfig();
+  if (!telegram.isReady) {
+    Logger.log("[WARN] 尚未在指令碼屬性設定 TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID，將無法發送通知！");
   }
+
+  // 先抓第一頁，取得首篇文章 ID 作為快速跳過條件
+  let firstPageHtml = fetchPage(CONFIG.BOARD_URL);
+  if (!firstPageHtml) {
+    Logger.log("❌ 無法取得看板首頁，結束本次掃描");
+    return;
+  }
+
+  let firstPagePosts = parsePostList(firstPageHtml);
+  if (firstPagePosts.length === 0) {
+    Logger.log("ℹ️ 首頁沒有可解析的文章，結束本次掃描");
+    return;
+  }
+
+  let firstPostPid = buildPostId(firstPagePosts[0].url);
+  let lastFirstPostPid = loadLatestFirstPostPid();
+  if (lastFirstPostPid && firstPostPid === lastFirstPostPid) {
+    Logger.log(`⏭️ 首篇文章 ID 未變更 (${firstPostPid})，跳過後續爬蟲`);
+    return;
+  }
+  Logger.log(`🆕 首篇文章 ID 變更: ${lastFirstPostPid || "無"} -> ${firstPostPid}`);
 
   let seenPosts = loadSeenPosts();
   let newMatches = [];
@@ -40,21 +63,26 @@ function main() {
   for (let page = 0; page < CONFIG.MAX_PAGES; page++) {
     Logger.log(`📄 [頁面 ${page + 1}/${CONFIG.MAX_PAGES}] ${currentUrl}`);
 
-    let html = fetchPage(currentUrl);
+    let html = page === 0 ? firstPageHtml : fetchPage(currentUrl);
     if (!html) break;
 
     let posts = parsePostList(html);
     Logger.log(`   📊 本頁共 ${posts.length} 篇文章`);
 
     for (let post of posts) {
-      let pid = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, post.url)
-                         .map(b => (b < 0 ? b + 256 : b).toString(16).padStart(2, '0')).join('');
+      let pid = buildPostId(post.url);
 
       // 跳過已看過的文章
-      if (seenPosts.includes(pid)) continue;
+      if (seenPosts.includes(pid)) {
+        Logger.log(`   🧾 [文章判斷] ${post.title} -> 略過（已看過）`);
+        continue;
+      }
 
       // 第一層篩選：標題必須同時包含「售票」和「孫燕姿」
-      if (!matchesAllKeywords(post.title, CONFIG.TITLE_KEYWORDS)) continue;
+      if (!matchesAllKeywords(post.title, CONFIG.TITLE_KEYWORDS)) {
+        Logger.log(`   🧾 [文章判斷] ${post.title} -> 不符合（標題關鍵字不足）`);
+        continue;
+      }
       Logger.log(`   🔍 [標題符合] ${post.title}`);
 
       // 取得內文與精確時間
@@ -67,13 +95,19 @@ function main() {
 
       // 第二層篩選：內容
       let combinedText = post.title + " " + content;
-      if (!matchesKeywords(combinedText, CONFIG.CONTENT_KEYWORDS)) continue;
+      if (!matchesKeywords(combinedText, CONFIG.CONTENT_KEYWORDS)) {
+        Logger.log(`   🧾 [文章判斷] ${post.title} -> 不符合（內文關鍵字不足）`);
+        continue;
+      }
       Logger.log(`   ✅ [內容符合] 孫燕姿相關!`);
 
       // 進階條件檢查
       let criteria = checkAdvancedCriteria(combinedText);
       if (criteria.isHighMatch) {
          Logger.log(`   🔥 [高度符合]`);
+        Logger.log(`   🧾 [文章判斷] ${post.title} -> 高度符合`);
+      } else {
+        Logger.log(`   🧾 [文章判斷] ${post.title} -> 可能相關`);
       }
 
       newMatches.push({
@@ -102,13 +136,16 @@ function main() {
     Logger.log(`🎉 找到 ${newMatches.length} 篇新的符合文章!`);
     for (let match of newMatches) {
       let msg = formatTelegramMessage(match.post, match.criteria, match.content);
-      sendTelegram(msg);
+      sendTelegram(msg, telegram.token, telegram.chatId);
     }
     // 儲存已看過紀錄至 GAS Properties
     saveSeenPosts(seenPosts);
   } else {
     Logger.log("ℹ️ 本次掃描無新的符合文章");
   }
+
+  // 本次有啟動爬文且完成流程，更新首篇文章 ID 快取
+  saveLatestFirstPostId(firstPostPid);
 }
 
 // ── 工具函式 ──────────────────────────────────────────
@@ -196,6 +233,11 @@ function fetchPostContent(url) {
   return { content: content.trim(), exactTime: exactTime };
 }
 
+function buildPostId(url) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, url)
+                  .map(b => (b < 0 ? b + 256 : b).toString(16).padStart(2, '0')).join('');
+}
+
 function matchesKeywords(text, keywords) {
   return keywords.some(kw => text.includes(kw));
 }
@@ -240,12 +282,12 @@ function formatTelegramMessage(post, criteria, content) {
 ...`;
 }
 
-function sendTelegram(message) {
-  if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN.includes("請在此填入")) return;
+function sendTelegram(message, botToken, chatId) {
+  if (!botToken || !chatId) return;
 
-  let url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  let url = `https://api.telegram.org/bot${botToken}/sendMessage`;
   let payload = {
-    "chat_id": TELEGRAM_CHAT_ID,
+    "chat_id": chatId,
     "text": message,
     "disable_web_page_preview": false
   };
@@ -289,8 +331,31 @@ function saveSeenPosts(seenArray) {
   props.setProperty("SEEN_POSTS", JSON.stringify(seenArray));
 }
 
+function loadTelegramConfig() {
+  let props = PropertiesService.getScriptProperties();
+  let token = (props.getProperty("TELEGRAM_BOT_TOKEN") || "").trim();
+  let chatId = (props.getProperty("TELEGRAM_CHAT_ID") || "").trim();
+  return {
+    token: token,
+    chatId: chatId,
+    isReady: token !== "" && chatId !== ""
+  };
+}
+
+function loadLatestFirstPostPid() {
+  let props = PropertiesService.getScriptProperties();
+  return props.getProperty("LATEST_FIRST_POST_PID") || "";
+}
+
+function saveLatestFirstPostId(pid) {
+  let props = PropertiesService.getScriptProperties();
+  props.setProperty("LATEST_FIRST_POST_PID", pid);
+}
+
 // 清除記憶 (測試時可用)
 function clearSeenPosts() {
-  PropertiesService.getScriptProperties().deleteProperty("SEEN_POSTS");
-  Logger.log("已清除所有歷史通知記憶！");
+  let props = PropertiesService.getScriptProperties();
+  props.deleteProperty("SEEN_POSTS");
+  props.deleteProperty("LATEST_FIRST_POST_PID");
+  Logger.log("已清除所有歷史通知記憶與首篇文章快取！");
 }
