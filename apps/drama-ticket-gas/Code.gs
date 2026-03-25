@@ -23,9 +23,6 @@ const CONFIG = {
   MAX_SEEN_POSTS: 500, // 記憶已通知的數量上限
 };
 
-const TELEGRAM_BOT_TOKEN = "8227096359:AAH6ughVdp8lwRZmNCU9qvuRumCYYZ2gfro";
-const TELEGRAM_CHAT_ID = "1141576540";
-
 // ── 主程式 ───────────────────────────────────────────
 function main() {
   Logger.log("🎯 PTT Drama-Ticket GAS 監控啟動");
