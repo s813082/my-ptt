@@ -19,6 +19,7 @@ const CONFIG = {
   CONTENT_KEYWORDS: ["孫燕姿"],
   DATE_KEYWORDS: ["5/15", "5/17", "05/15", "05/17", "5月15", "5月17"],
   SEAT_KEYWORDS: ["連號", "連座", "兩張", "2張", "二張", "兩位", "一起"],
+  HEAD_POST_CHECK_COUNT: 5, // 快速變更檢查用：比較前幾篇文章 ID
   MAX_PAGES: 3, // 每次掃描幾頁
   MAX_SEEN_POSTS: 500, // 記憶已通知的數量上限
 };
@@ -32,7 +33,7 @@ function main() {
     Logger.log("[WARN] 尚未在指令碼屬性設定 TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID，將無法發送通知！");
   }
 
-  // 先抓第一頁，取得首篇文章 ID 作為快速跳過條件
+  // 先抓第一頁，取得前 N 篇文章 ID 作為快速跳過條件
   let firstPageHtml = fetchPage(CONFIG.BOARD_URL);
   if (!firstPageHtml) {
     Logger.log("❌ 無法取得看板首頁，結束本次掃描");
@@ -45,13 +46,17 @@ function main() {
     return;
   }
 
-  let firstPostPid = buildPostId(firstPagePosts[0].url);
-  let lastFirstPostPid = loadLatestFirstPostPid();
-  if (lastFirstPostPid && firstPostPid === lastFirstPostPid) {
-    Logger.log(`⏭️ 首篇文章 ID 未變更 (${firstPostPid})，跳過後續爬蟲`);
+  let topPosts = firstPagePosts.slice(0, CONFIG.HEAD_POST_CHECK_COUNT);
+  let topPostPids = topPosts.map(p => buildPostId(p.url));
+  let topPostSignature = topPostPids.join(",");
+  Logger.log(`🧪 前 ${topPosts.length} 篇文章 ID: ${topPostPids.join(" | ")}`);
+
+  let lastTopPostsSignature = loadLatestHeadPostsSignature();
+  if (lastTopPostsSignature && topPostSignature === lastTopPostsSignature) {
+    Logger.log(`⏭️ 前 ${CONFIG.HEAD_POST_CHECK_COUNT} 篇文章 ID 未變更，跳過後續爬蟲`);
     return;
   }
-  Logger.log(`🆕 首篇文章 ID 變更: ${lastFirstPostPid || "無"} -> ${firstPostPid}`);
+  Logger.log(`🆕 前 ${CONFIG.HEAD_POST_CHECK_COUNT} 篇文章 ID 有變更，開始掃描`);
 
   let seenPosts = loadSeenPosts();
   let newMatches = [];
@@ -141,8 +146,8 @@ function main() {
     Logger.log("ℹ️ 本次掃描無新的符合文章");
   }
 
-  // 本次有啟動爬文且完成流程，更新首篇文章 ID 快取
-  saveLatestFirstPostId(firstPostPid);
+  // 本次有啟動爬文且完成流程，更新前 N 篇文章 ID 快取
+  saveLatestHeadPostsSignature(topPostPids);
 }
 
 // ── 工具函式 ──────────────────────────────────────────
@@ -339,20 +344,36 @@ function loadTelegramConfig() {
   };
 }
 
-function loadLatestFirstPostPid() {
+function loadLatestHeadPostsSignature() {
   let props = PropertiesService.getScriptProperties();
-  return props.getProperty("LATEST_FIRST_POST_PID") || "";
+  let data = props.getProperty("LATEST_HEAD_POSTS_SIGNATURE") || "";
+  if (!data) return "";
+
+  // 新格式：JSON 陣列 ["id1","id2",...]
+  try {
+    let parsed = JSON.parse(data);
+    if (Array.isArray(parsed)) {
+      return parsed.join(",");
+    }
+  } catch (e) {
+    // 舊格式會走到下面直接回傳
+  }
+
+  // 舊格式：逗號字串或單一 ID
+  return data;
 }
 
-function saveLatestFirstPostId(pid) {
+function saveLatestHeadPostsSignature(pids) {
   let props = PropertiesService.getScriptProperties();
-  props.setProperty("LATEST_FIRST_POST_PID", pid);
+  props.setProperty("LATEST_HEAD_POSTS_SIGNATURE", JSON.stringify(pids));
 }
 
 // 清除記憶 (測試時可用)
 function clearSeenPosts() {
   let props = PropertiesService.getScriptProperties();
   props.deleteProperty("SEEN_POSTS");
+  props.deleteProperty("LATEST_HEAD_POSTS_SIGNATURE");
+  // 向後相容：順便清掉舊版欄位
   props.deleteProperty("LATEST_FIRST_POST_PID");
-  Logger.log("已清除所有歷史通知記憶與首篇文章快取！");
+  Logger.log("已清除所有歷史通知記憶與前 5 篇文章快取！");
 }
